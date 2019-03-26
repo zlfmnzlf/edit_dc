@@ -1,40 +1,49 @@
 <template>
-    <section class="c-line"
+    <section class="c-line" :class="{hover:hover}">
 
-    >
-
-        <canvas class="lineCanvas" ref="lineCanvas"
-                :style="{width:newCan.w+'px',height:newCan.h+'px',top:newCan.y+'px',left:newCan.x+'px'}"
-        ></canvas>
-        <p>{{`X:${x},Y:${y},W:${w},H:${h},`}}</p>
-        <p>{{`dsx:${dsx},dsy:${dsy},dex:${dex},dey:${dey},`}}</p>
-        <p>{{`newLine sx:${newLine.sx}`}}</p>
-        <p>{{`newLine sy:${newLine.sy}`}}</p>
-        <p>{{`newLine ex:${newLine.ex}`}}</p>
-        <p>{{`newLine ey:${newLine.ey}`}}</p>
-
-        <vue-draggable-resizable
-                :x="dsx-5"
-                :y="dsy-5"
-                :w="10"
-                :h="10"
-                :resizable="false"
-                :minw="10"
-                :minh="10"
-                @dragging="onS"
+        <div class="wrap"
+             :style="{left:-tmpLine.x+'px',top:-tmpLine.y+'px'}"
         >
-        </vue-draggable-resizable>
-        <vue-draggable-resizable
-                :x="dex-5"
-                :y="dey-5"
-                :w="10"
-                :h="10"
-                :resizable="false"
-                :minw="10"
-                :minh="10"
-                @dragging="onE"
-        >
-        </vue-draggable-resizable>
+            <div class="hover"
+                 :style="{width:(tmpLine.w-10)+'px',height:(tmpLine.h-10)+'px',left:(tmpLine.x+5)+'px',top:(tmpLine.y+5)+'px'}"
+                 @mouseenter="showDan"
+            ></div>
+            <canvas class="lineCanvas" ref="lineCanvas" @mouseleave="hideDan"></canvas>
+            <vue-draggable-resizable
+                    :x="tmpLine.sx"
+                    :y="tmpLine.sy"
+                    :w="10"
+                    :h="10"
+                    :resizable="false"
+                    :minw="10"
+                    :minh="10"
+                    :parent="true"
+                    @dragging="onS"
+                    @dragstop="onMoveEnd"
+                    @mouseenter="hover= true"
+            >
+                <span class="dan"></span>
+                <span class="del" @click="$emit('del')">删</span>
+            </vue-draggable-resizable>
+            <vue-draggable-resizable
+                    :x="tmpLine.ex"
+                    :y="tmpLine.ey"
+                    :w="10"
+                    :h="10"
+                    :resizable="false"
+                    :minw="10"
+                    :minh="10"
+                    :parent="true"
+                    @dragging="onE"
+                    @dragstop="onMoveEnd"
+                    @mouseenter="hover= true"
+
+            ><span class="dan "></span>
+
+            </vue-draggable-resizable>
+        </div>
+
+
     </section>
 </template>
 <script>
@@ -43,90 +52,75 @@
     export default {
         components: {VueDraggableResizable},
         props: {
+
             lineData: {
                 type: Object,
             }
         },
         created: function () {
             this.$nextTick(function () {
+                this.$refs.lineCanvas.width = 1024
+                this.$refs.lineCanvas.height = 682
                 this.ctx = this.$refs.lineCanvas.getContext('2d')
+                this.ctx.strokeStyle = "black"
+                this.ctx.lineWidth = 1
                 this.draw()
             })
         },
         data: function () {
             return {
-                ctx: false,
-                w: 0,
-                h: 0,
-                y: 0,
-                x: 0,
-                dsx: 0,
-                dsy: 0,
-                dex: 0,
-                dey: 0,
-                img: '',
-                type: '',
-                isEdit: false,
-                newLine: false
+                hover: false,
+                tHover: false,
+                tmpLine: false,
             }
         },
-        computed: {
-            newCan: function () {
-                const {sx, sy, ex, ey} = this.newLine
+        computed: {},
+        methods: {
+            showDan: function () {
+                window.clearTimeout(this.tHover)
+                this.hover = true
+            },
+            hideDan: function () {
+                window.clearTimeout(this.tHover)
+                this.tHover = setTimeout(() => {
+                    this.hover = false
+                }, 500)
+            },
+            onMoveEnd: function () {
+                let {sx, sy, ex, ey} = this.tmpLine
+                const x = sx < ex ? sx : ex
+                const y = sy < ey ? sy : ey
                 const w = Math.abs(sx - ex)
                 const h = Math.abs(sy - ey)
-                let x=0;
-                let y=0;
-                return {x, y, w, h}
-            }
-        },
-        methods: {
+                this.$emit('change', {x, y, w, h,active:false})
+            },
             onS: function (x, y) {
-                this.newLine.sx = x
-                this.newLine.sy = y
+                this.tmpLine.sx = x
+                this.tmpLine.sy = y
             },
             onE: function (x, y) {
-                this.newLine.ex = x
-                this.newLine.ey = y
+                this.tmpLine.ex = x
+                this.tmpLine.ey = y
             },
             draw: function () {
-                console.log('111')
-                const {sx, sy, ex, ey, type} = this.lineData
-
-                this.w = Math.abs(sx - ex)
-                this.h = Math.abs(sy - ey)
-                this.x = sx < ex ? sx : ex
-                this.y = sy < ey ? sy : ey
-                this.type = type
-
-                this.$refs.lineCanvas.width = this.w
-                this.$refs.lineCanvas.height = this.h
-                this.ctx.clearRect(0, 0, this.w, this.h);
-                this.ctx.strokeStyle = "black"
-                this.ctx.lineWidth = 2
-                this.line()
-
-
-            },
-            line: function () {
-                const {w, h} = this
-                const {sx, sy, ex, ey} = this.lineData
-                this.dsx = sx < ex ? 1 : w - 1
-                this.dsy = sy < ey ? 1 : h - 1
-                this.dex = sx > ex ? 1 : w - 1
-                this.dey = sy > ey ? 1 : h - 1
-
-                this.newLine = {sx: this.dsx, sy: this.dsy, ex: this.dex, ey: this.dey}
-
+                window.clearTimeout(this.tHover)
+                this.tmpLine = this.lineData
+                const {sx, sy, ex, ey} = this.tmpLine
+                this.ctx.clearRect(0, 0, this.$refs.lineCanvas.width, this.$refs.lineCanvas.height)
                 this.ctx.beginPath()
-                this.ctx.moveTo(this.dsx, this.dsy)
-                this.ctx.lineTo(this.dex, this.dey)
+                this.ctx.moveTo(sx, sy)
+                this.ctx.lineTo(ex, ey)
                 this.ctx.stroke()
                 this.ctx.closePath()
-            },
 
+            }
         },
         watch: {
+            hover: function (val) {
+                if (val) {
+                    window.clearTimeout(this.tHover)
+                }
+            },
             lineData: {
                 deep: true,
                 handler: function () {
@@ -138,19 +132,56 @@
 </script>
 <style lang="scss">
     .c-line {
-        position: absolute;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+
+        .hover {
+            position: absolute;
+            z-index: 2;
+        }
+
+        .wrap {
+            position: absolute;
+            width: 1024px;
+            height: 682px;
+        }
 
         .draggable {
-            background-color: red;
-            border-radius: 50%;
+            display: none;
+            border: none !important;
+            z-index: 3 !important;
+
+            .dan {
+                display: block;
+                width: 100%;
+                height: 100%;
+                margin-left: -50%;
+                margin-top: -50%;
+                background-color: red;
+                border-radius: 50%;
+                cursor: pointer;
+            }
+
+            .del {
+                display: block !important;
+            }
         }
 
         .lineCanvas {
             position: absolute;
             width: 100%;
             height: 100%;
-            background-color: red;
+            z-index: 1;
+        }
+    }
 
+    .active .c-line {
+        overflow: visible;
+
+        .draggable {
+            display: block;
         }
     }
 </style>

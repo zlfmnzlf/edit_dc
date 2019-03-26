@@ -16,6 +16,14 @@
                 type: Number,
                 default: 0
             },
+            x:{
+                type: Number,
+                default: 0
+            },
+            y:{
+                type: Number,
+                default: 0
+            },
             type: {
                 type: String
             }
@@ -48,7 +56,7 @@
             },
             rect: function () {
                 const {w, h} = this
-                this.ctx.lineWidth = 4
+                this.ctx.lineWidth = 2
                 this.ctx.strokeRect(0, 0, w, h);
             },
             circle: function () {
@@ -61,7 +69,7 @@
                     ox = a * k, // 水平控制点偏移量
                     oy = b * k; // 垂直控制点偏移量</p> <p> ctx.beginPath();
                 //从椭圆的左端点开始顺时针绘制四条三次贝塞尔曲线
-                this.ctx.lineWidth = 2
+                this.ctx.lineWidth = 1
                 this.ctx.beginPath()
                 this.ctx.moveTo(x - a, y);
                 this.ctx.bezierCurveTo(x - a, y - oy, x - ox, y - b, x, y - b);

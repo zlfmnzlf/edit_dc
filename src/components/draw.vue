@@ -58,16 +58,22 @@
 
             },
             line: function () {
-                const {w, h} = this
+                this.w = 1024
+                this.h = 682
+                this.x = 0
+                this.y = 0
+                this.$refs.lineCanvas.width = this.w
+                this.$refs.lineCanvas.height = this.h
+                // const {w, h} = this
                 const {sx, sy, ex, ey} = this.lineData
-                const dsx = sx < ex ? 1 : w - 1
-                const dsy = sy < ey ? 1 : h - 1
-                const dex = sx > ex ? 1 : w - 1
-                const dey = sy > ey ? 1 : h - 1
+                // const dsx = sx < ex ? 1 : w - 1
+                // const dsy = sy < ey ? 1 : h - 1
+                // const dex = sx > ex ? 1 : w - 1
+                // const dey = sy > ey ? 1 : h - 1
 
                 this.ctx.beginPath()
-                this.ctx.moveTo(dsx, dsy)
-                this.ctx.lineTo(dex, dey)
+                this.ctx.moveTo(sx, sy)
+                this.ctx.lineTo(ex, ey)
                 this.ctx.stroke()
                 this.ctx.closePath()
             },

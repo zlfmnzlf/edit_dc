@@ -1,215 +1,272 @@
 <template>
 
     <main id="app" class="app" @mousemove="onMovePage" @click="escTool">
-        <div>
-            <button @click="genImg">生成图片</button>
-            <button @click="setTool('line')">线</button>
-            <button @click="setTool('circle')">圆</button>
-            <button @click="setTool('rect')">矩形</button>
-            <button>册除</button>
+        <div class="clearfix">
+            <button @click="genImg">测试生成图片</button>
+            <button>保存</button>
         </div>
-        <icon-list class="icon-list" @sel="selImg"></icon-list>
-        <section class="img-wrap" @contextmenu.stop.prevent="onRightClick">
-            <!--事件接收-->
-            <div v-if="newImg" class="tool-mask img"
-                 :class="{'move':newTool}"
-                 @click.stop="addImg"
-            ></div>
-            <div v-if="newTool" class="tool-mask line"
-                 :class="{'move':newTool}"
-                 @mousedown.stop="sDarw"
-                 @mouseup="eDarw"
-                 @mousemove="onMoveTool"
+        <section class="clearfix">
+            <div class="icon-list">
+                <icon-list @sel="selImg"></icon-list>
+                <tool-list @sel="setTool"></tool-list>
+            </div>
+            <div class="edit-wrap">
+                <div class="head"></div>
+                <section class="img-wrap" @click.self="onDeactivated" @contextmenu.stop.prevent="onRightClick">
+                    <!--事件接收-->
+                    <div v-if="newImg" class="tool-mask img"
+                         :class="{'move':newTool}"
+                         @click.stop="addImg"
+                    ></div>
+                    <div v-if="newTool" class="tool-mask line"
+                         :class="{'move':newTool}"
+                         @mousedown.stop="sDarw"
+                         @mouseup="eDarw"
+                         @mousemove="onMoveTool"
+                    ></div>
+                    <!--绘制-->
+                    <vue-draggable-resizable
+                            v-for="(item,key) in tmpJson" :key="`tmp${key}`"
+                            :x="item.x"
+                            :y="item.y"
+                            :w="item.w"
+                            :h="item.h"
+                            :z="1000+key"
+                            :resizable="item.isSize"
+                            :active="item.active"
+                            :minw="20"
+                            :minh="20"
+                            :parent="true"
+                            :snap="true"
+                            :is-conflict-check="true"
+                    >
+                        <tmp-darw class="lineJson"
+                                  :lineData="item" ref="tmpCanvas"
+                        ></tmp-darw>
 
-            ></div>
-            <!--绘制-->
-            <vue-draggable-resizable
-                    v-for="(item,key) in tmpJson" :key="`tmp${key}`"
-                    :x="item.x"
-                    :y="item.y"
-                    :w="item.w"
-                    :h="item.h"
-                    :z="key+100"
-                    :resizable="item.isSize"
-                    :active="item.active"
-                    :minw="20"
-                    :minh="20"
-                    :parent="true"
-                    :snap="true"
-                    :is-conflict-check="true"
-            >
-                <tmp-darw class="lineJson"
-                          :lineData="item" ref="lineCanvas"
-                ></tmp-darw>
+                    </vue-draggable-resizable>
+                    <!--线条-->
+                    <vue-draggable-resizable
+                            class="noBorder line"
+                            v-for="(item,key) in lineJson" :key="`line${key}`"
+                            :x="item.x"
+                            :y="item.y"
+                            :w="item.w"
+                            :h="item.h"
+                            :z="100+key"
+                            :resizable="false"
+                            :draggable="false"
+                            :active="item.active"
+                            :minw="20"
+                            :minh="20"
+                            :parent="true"
+                            @activated="onActivated('line',item,key)"
+                            @dragging="onDragLine(arguments,item,key)"
+                    >
+                        <line-darw class="lineJson" ref="lineImg" :lineData="item"
+                                   @change="(nData)=>{item = Object.assign(item,nData)}"
+                                   @del="lineJson.splice(key,1)"
+                        ></line-darw>
+                    </vue-draggable-resizable>
+                    <!--图形-->
+                    <vue-draggable-resizable
+                            v-for="(item,key) in canvasJson" :key="`can${key}`"
+                            :x="item.x"
+                            :y="item.y"
+                            :w="item.w"
+                            :h="item.h"
+                            :z="300+key"
+                            :resizable="item.isSize"
+                            :active="item.active"
+                            :minw="5"
+                            :minh="5"
+                            :parent="true"
+                            @activated="onActivated('can',item,key)"
+                            @resizing="(x,y,w,h)=>{item.x= x;item.y=y;item.w= w;item.h=h}"
+                            @dragging="(x,y)=>{item.x= x;item.y=y}"
+                    >
+                        <canvas-darw class="lineJson" ref="canImg" :w="item.w" :h="item.h" :x="item.x" :y="item.y"
+                                     :type="item.type"></canvas-darw>
+                        <span class="del" @click="canvasJson.splice(key,1)">删</span>
+                    </vue-draggable-resizable>
 
-            </vue-draggable-resizable>
-            <!--线条-->
-            <vue-draggable-resizable
-                    class="noBorder line"
-                    v-for="(item,key) in lineJson" :key="`line${key}`"
-                    :x="item.x"
-                    :y="item.y"
-                    :w="item.w"
-                    :h="item.h"
-                    :z="key+100"
-                    :resizable="false"
-                    :active="item.active"
-                    :minw="20"
-                    :minh="20"
-                    :parent="true"
-            >
-                <line-darw class="lineJson" ref="canImg"  :lineData="item"></line-darw>
-                <span class="del" @click="lineJson.splice(key,1)">删</span>
+                    <!--图片-->
+                    <vue-draggable-resizable
+                            v-for="(item,key) in imgJson" :key="`img${key}`"
+                            :x="item.x"
+                            :y="item.y"
+                            :w="item.w"
+                            :h="item.h"
+                            :z="500+key"
+                            :resizable="item.isSize"
+                            :active="item.active"
+                            :minw="5"
+                            :minh="5"
+                            :parent="true"
+                            :snap="true"
+                            :is-conflict-check="true"
+                            @activated="onActivated('img',item,key)"
+                            @dragging="(x,y)=>{item.x= x;item.y=y}"
+                    >
+                        <div class="img">
+                            <img-canvas ref="imgImg" :img="item"></img-canvas>
+                            <div class="tooltip">
+                                <a title="删除" class="opp-del" @click="imgJson.splice(key,1)"></a>
+                                <a title="左转90度" class="opp-r-90" @click="onRotateImg(item,key,90)"></a>
+                                <a title="右转90度" class="opp-r-270" @click="onRotateImg(item,key,-90)"></a>
+                                <a title="水平翻转" class="opp-horizontal" @click="onHorizontalImg(item,key)"></a>
+                                <a title="垂直翻转" class="opp-vertical" @click="onVerticalImg(item,key)"></a>
+                            </div>
 
-            </vue-draggable-resizable>
-            <!--图形-->
-            <vue-draggable-resizable
-                    v-for="(item,key) in canvasJson" :key="`can${key}`"
-                    :x="item.x"
-                    :y="item.y"
-                    :w="item.w"
-                    :h="item.h"
-                    :z="key+100"
-                    :resizable="item.isSize"
-                    :active="item.active"
-                    :minw="20"
-                    :minh="20"
-                    :parent="true"
-                    @resizing="(x,y,w,h)=>{item.w= w;item.h=h}"
-            >
-                <canvas-darw class="lineJson" ref="canImg" :w="item.w" :h="item.h" :type="item.type"></canvas-darw>
-                <span class="del" @click="canvasJson.splice(key,1)">删</span>
 
-            </vue-draggable-resizable>
+                        </div>
+                    </vue-draggable-resizable>
+                    <!--信息点-->
+                    <vue-draggable-resizable
+                            v-for="(item,key) in infoJson" :key="`info${key}`"
+                            :x="item.x"
+                            :y="item.y"
+                            :w="item.w"
+                            :h="item.h"
+                            :z="key+2000"
+                            :resizable="item.isSize"
+                            :active="item.active"
+                            :minw="20"
+                            :minh="20"
+                            :parent="true"
+                            :snap="true"
+                            :is-conflict-check="true"
+                            :handles="['mr','ml']"
+                            @dragging="(x,y)=>{item.x= x;item.y=y}"
+                            @activated="onActivated('info',item,key)"
+                    >
+                        <div>
+                            <span class="del" @click="infoJson.splice(key,1)">删</span>
+                            <p class="info-box text" v-if="item.type=='text'">
+                                <span class="name">{{item.name}}</span>
+                                <span class="val">{{item.val}}</span>
+                                <span class="unit">{{item.unit}}</span>
+                            </p>
+                            <p class="info-box label" v-if="item.type=='label'">
+                                <span :style="{backgroundColor:item.bg}">{{item.name}}</span>
+                            </p>
+                            <div class="info-box chart" v-if="item.type=='chart'">
+                                <h1>{{item.name}}</h1>
+                                <p>
+                                    图<br>图
+                                </p>
+                            </div>
+                        </div>
+                    </vue-draggable-resizable>
 
-            <!--图片-->
-            <vue-draggable-resizable
-                    v-for="(item,key) in imgJson" :key="`img${key}`"
-                    :x="item.x"
-                    :y="item.y"
-                    :w="item.w"
-                    :h="item.h"
-                    :z="key+100"
-                    :resizable="item.isSize"
-                    :active="item.active"
-                    :minw="20"
-                    :minh="20"
-                    :parent="true"
-                    :snap="true"
-                    :is-conflict-check="true"
-            >
-                <div class="img" :style="{backgroundImage:`url('${item.img}')`}">
-                    <span class="del" @click="imgJson.splice(key,1)">删</span>
-                </div>
-            </vue-draggable-resizable>
-            <!--信息点-->
-            <vue-draggable-resizable
-                    v-for="(item,key) in infoJson" :key="`info${key}`"
-                    :x="item.x"
-                    :y="item.y"
-                    :w="item.w"
-                    :h="item.h"
-                    :z="key+2000"
-                    :resizable="item.isSize"
-                    :active="item.active"
-                    :minw="20"
-                    :minh="20"
-                    :parent="true"
-                    :snap="true"
-                    :is-conflict-check="true"
-                    :handles="['mr','ml']"
-            >
-                <div @click="currentInfoAttr=item">
-                    <span class="del" @click="infoJson.splice(key,1)">删</span>
-                    <p class="info-box text" v-if="item.type=='text'">
-                        <span>{{item.name}}</span> <span></span>
-                    </p>
-                    <p class="info-box label" v-if="item.type=='label'">
-                        <span :style="{backgroundColor:item.bg}">{{item.name}}</span>
-                    </p>
-                    <div class="info-box chart" v-if="item.type=='chart'">
-                        <h1>{{item.name}}</h1>
-                        <p>
-                            图<br>图
-                        </p>
+                    <div class="table-wrap">
+                        <div>
+                            <p class="head">PCS</p>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>测量值</th>
+                                    <th>设定值</th>
+                                    <th width="100">备注</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="(item,key) in pcsJson" :key="key">
+                                    <td><span class="del" @click="onDelPCS(key)">删</span>{{item.name}}</td>
+                                    <td class="red">{{item.testVal}}</td>
+                                    <td class="yellow">{{item.setVal}}</td>
+                                    <td>{{item.desc}}</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>
+                                        <button @click="onAddPCS">+添加</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                            <p class="tip-text red">注：红色为不可设置，黄色为可设置</p>
+                        </div>
+                        <div>
+                            <p class="head">BMS</p>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>测量值</th>
+                                    <th>设定值</th>
+                                    <th width="100">备注</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="(item,key) in bmsJson" :key="key">
+                                    <td><span class="del" @click="onDelBMS(key)">删</span>{{item.name}}</td>
+                                    <td>{{item.testVal}}</td>
+                                    <td>{{item.setVal}}</td>
+                                    <td>{{item.desc}}</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>
+                                        <button @click="onAddBMS">+添加</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            </vue-draggable-resizable>
-
-            <div class="table-wrap">
-                <div>
-                    <p class="head">PCS</p>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>名称</th>
-                            <th>测量值</th>
-                            <th>设定值</th>
-                            <th width="100">备注</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr v-for="(item,key) in pcsJson" :key="key">
-                            <td><span class="del" @click="onDelPCS(key)">删</span>{{item.name}}</td>
-                            <td>{{item.testVal}}</td>
-                            <td>{{item.setVal}}</td>
-                            <td>{{item.desc}}</td>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td>
-                                <button @click="onAddPCS">+添加</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                    <p class="tip-text red">注：红色为不可设置，黄色为可设置</p>
-                </div>
-                <div>
-                    <p class="head">BMS</p>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>名称</th>
-                            <th>测量值</th>
-                            <th>设定值</th>
-                            <th width="100">备注</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr v-for="(item,key) in bmsJson" :key="key">
-                            <td><span class="del" @click="onDelBMS(key)">删</span>{{item.name}}</td>
-                            <td>{{item.testVal}}</td>
-                            <td>{{item.setVal}}</td>
-                            <td>{{item.desc}}</td>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td>
-                                <button @click="onAddBMS">+添加</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                </section>
+                <p>提示：右击添加信息点/标签/图表</p>
             </div>
 
+            <section class="attr">
+                <p class="head">属性编辑</p>
+                <div v-if="currentInfoAttr">
+                    <p v-if="currentInfoAttr.type=='info'">
+                        <label>信息点：</label>
+                        <select>
+                            <option value="1">信息点列表</option>
+                        </select>
+                    </p>
+                    <p class="head">位置</p>
+                    <p>
+                        <label>X：</label>
+                        <input type="number" v-model.number="currentInfoAttr.item.x">
+                    </p>
+                    <p>
+                        <label>Y：</label>
+                        <input type="number" v-model.number="currentInfoAttr.item.y">
+                    </p>
+                    <div v-if="currentInfoAttr.type=='can'&&currentInfoAttr.item.type!='line'">
+                        <p>
+                            <label>W：</label>
+                            <input type="number" v-model.number="currentInfoAttr.item.w">
+                        </p>
+                        <p>
+                            <label>H：</label>
+                            <input type="number" v-model.number="currentInfoAttr.item.h">
+                        </p>
+                    </div>
+                    {{currentInfoAttr.item}}
+                    <!--<div>-->
+                    <!--<p>-->
+                    <!--<label>背景色：</label>-->
+                    <!--<input type="number" value="1">-->
+                    <!--</p>-->
+                    <!--</div>-->
+                </div>
+            </section>
+        </section>
 
-        </section>
-        <section class="attr">
-            <p>属性编辑</p>
-            <p>名称：{{currentInfoAttr.name}}</p>
-            <p>TODO:{{currentInfoAttr}}</p>
-        </section>
         <div class="newImg" v-if="newImg"
              :style="{top:(newImg.y+1)+'px',left:(newImg.x+1)+'px',width:newImg.w+'px',height:newImg.h+'px',backgroundImage:`url('${newImg.img}')`}"
         ></div>
 
-        <canvas class="canvas" ref="mainCanvas"></canvas>
         <div class="rightMenu" ref="rightMenu"
              v-if="isShowRightMenu"
              :style="{top:isShowRightMenu.y+'px',left:isShowRightMenu.x+'px'}"
@@ -220,6 +277,8 @@
                 <li @click="addInfo('chart')">添加图表</li>
             </ul>
         </div>
+
+        <canvas class="canvas" ref="mainCanvas"></canvas>
     </main>
 </template>
 
@@ -227,18 +286,21 @@
     import Vue from 'vue'
     import tmpDarw from './components/draw'
     import canvasDarw from './components/canvas'
+    import imgCanvas from './components/img-canvas'
     import iconList from './components/icon-list'
+    import toolList from './components/tool-list'
     import lineDarw from './components/line'
     import VueDraggableResizable from 'vue-draggable-resizable-gorkys'
+
     // import 'vue-draggable-resizable-gorkys/dist/VueDraggableResizable.css'
 
     export default {
         name: 'app',
-        components: {tmpDarw, lineDarw, canvasDarw, iconList, VueDraggableResizable},
+        components: {tmpDarw, toolList, imgCanvas, lineDarw, canvasDarw, iconList, VueDraggableResizable},
         created: function () {
             this.$nextTick(function () {
                 this.$canvas.width = 1024
-                this.$canvas.height = 768
+                this.$canvas.height = 682
                 this.ctx = this.$canvas.getContext('2d')
             })
         },
@@ -259,7 +321,7 @@
                 newTool: false,
                 isDarw: false,
                 currentLineIndex: false,
-                currentInfoAttr: {},
+                currentInfoAttr: false,
                 imgJson: [],
                 tmpJson: [],
                 lineJson: [],
@@ -277,6 +339,7 @@
                 // this.isDarw = false
             },
             setTool: function (type) {
+                console.log('111', type)
                 this.newTool = type
             },
             selImg: function (arg, item) {
@@ -285,7 +348,20 @@
                 const ev = arg[0]
                 const {x, y} = ev
                 const {img, w, h, isSize} = item
-                this.newImg = {img, w, h, isSize, x, y, active: true}
+                this.newImg = {
+                    img,
+                    w,
+                    h,
+                    imgW: w,
+                    imgH: h,
+                    isSize,
+                    x,
+                    y,
+                    rotate: 0,
+                    active: true,
+                    isVertical: false,
+                    isHorizontal: false
+                }
                 // this.imgJson.push({img, w, h, isSize, x: 0, y: 0,active:true})
             },
             addInfo: function (type) {
@@ -296,6 +372,8 @@
                         _.name = prompt("请选择信息点", "")
                         _.w = 300
                         _.h = 20
+                        _.val = 3.0
+                        _.unit = 'kWh'
                         break
                     case 'label':
                         _.name = prompt("请输入标签名称", "")
@@ -319,6 +397,37 @@
                     this.newImg = false
                 }
             },
+            onHorizontalImg: function (item, key) {
+                item.isHorizontal = !item.isHorizontal
+                Vue.set(this.imgJson, key, item)
+
+            },
+            onVerticalImg: function(item, key){
+                item.isVertical = !item.isVertical
+                Vue.set(this.imgJson, key, item)
+            },
+            onRotateImg: function (item, key, deg) {
+                const _ = Object.assign({}, item)
+                let nDeg = _.rotate + deg
+                if (nDeg >= 360) {
+                    nDeg = 0
+                }
+                if (nDeg < 0) {
+                    nDeg = 270
+                }
+                _.rotate = nDeg
+                if (_.rotate == 90 || _.rotate == 270) {
+                    console.log('RRRRRR', _.imgW, _.imgH)
+                    _.w = _.imgH
+                    _.h = _.imgW
+                } else {
+                    _.w = _.imgW
+                    _.h = _.imgH
+                }
+                console.log('RRRRWH', _.w, _.h)
+                Vue.set(this.imgJson, key, _)
+
+            },
             sDarw: function (ev) {
                 if (this.newTool) {
                     this.isDarw = true
@@ -339,16 +448,19 @@
                 this.isDarw = false
                 if (this.newTool) {
                     const data = this.tmpJson[this.currentLineIndex]
-                    const {ix, iy, sx, sy, type} = data
+                    const {sx, sy, type} = data
                     const ex = ev.offsetX
                     const ey = ev.offsetY
                     if (this.newTool !== 'line') {
-                        const {x, y, w, h, type} = this.$refs.lineCanvas[this.currentLineIndex]
+                        const {x, y, w, h, type} = this.$refs.tmpCanvas[this.currentLineIndex]
                         this.canvasJson.push({x, y, w, h, type})
                         this.tmpJson.splice(this.currentLineIndex, 1)
                     } else {
-                        const {x, y, w, h} = this.$refs.lineCanvas[this.currentLineIndex]
-                        this.lineJson.push({x, y, w, h,ix, iy, sx, sy, ex, ey, type})
+                        const x = sx < ex ? sx : ex
+                        const y = sy < ey ? sy : ey
+                        const w = Math.abs(sx - ex)
+                        const h = Math.abs(sy - ey)
+                        this.lineJson.push({x, y, w, h, sx, sy, ex, ey, type, active: true})
                         this.tmpJson.splice(this.currentLineIndex, 1)
                     }
                 }
@@ -358,8 +470,8 @@
             onMovePage: function (ev) {
                 const {x, y} = ev
                 if (this.newImg) {
-                    const {img, w, h, isSize, active} = this.newImg
-                    this.newImg = {img, w, h, isSize, x, y, active}
+                    const {img, w, h, imgW, imgH, rotate, isSize, active, isVertical, isHorizontal} = this.newImg
+                    this.newImg = {img, w, h, x, y, imgW, imgH, rotate, isSize, active, isVertical, isHorizontal}
                 }
 
             },
@@ -400,6 +512,24 @@
             onDelPCS: function (index) {
                 this.pcsJson.splice(index, 1)
             },
+            onDragLine: function (xy, item, i) {
+                const [x, y] = xy
+                const ox = item.x
+                const oy = item.y
+                item.x = x
+                item.y = y
+                item.sx = item.sx - (ox - item.x)
+                item.sy = item.sy - (oy - item.y)
+                item.ex = item.ex - (ox - item.x)
+                item.ey = item.ey - (oy - item.y)
+                Vue.set(this.lineJson, i, item)
+            },
+            onActivated: function (type, item, key) {
+                this.currentInfoAttr = {type, item, key}
+            },
+            onDeactivated: function () {
+                this.currentInfoAttr = false
+            },
             _loadImage: function (src) {
                 return new Promise((resolve, reject) => {
                     const image = new Image();
@@ -414,26 +544,44 @@
                         reject('Error: image error!', e)
                     };
                 })
-
             },
             genImg: function () {
-                this.imgJson.forEach(item => {
-                    this._loadImage(item.img).then(img => {
-                        const {x, y, w, h} = item
-                        this.ctx.drawImage(img, x, y, w, h)
-                    }).catch(e => {
-                        console.log(e)
+                this.ctx.clearRect(0, 0, 1024, 682)
+                if (this.$refs.lineImg) {
+                    this.$refs.lineImg.forEach(item => {
+                        const subCanvas = item.$refs.lineCanvas
+                        this.ctx.drawImage(subCanvas, 0, 0, 1024, 682)
                     })
-                })
-                this.$refs.lineCanvas.forEach(item => {
-                    const subCanvas = item.$refs.lineCanvas
-                    const {x, y, w, h} = item
-                    this.ctx.drawImage(subCanvas, x, y, w, h)
-                })
+                }
+                if (this.$refs.canImg) {
+                    this.$refs.canImg.forEach(item => {
+                        const subCanvas = item.$refs.lineCanvas
+                        const {x, y, w, h} = item
+                        this.ctx.drawImage(subCanvas, x, y, w, h)
+                    })
+                }
+                if (this.imgJson) {
+                    this.$refs.imgImg.forEach(item => {
+                        const subCanvas = item.$refs.lineCanvas
+                        const {x, y, w, h} = item
+                        this.ctx.drawImage(subCanvas, x, y, w, h)
+                    })
+                    // this.imgJson.forEach(item => {
+                    //     this._loadImage(item.img).then(img => {
+                    //         const {x, y, w, h} = item
+                    //         this.ctx.drawImage(img, x, y, w, h)
+                    //     }).catch(e => {
+                    //         console.log(e)
+                    //     })
+                    // })
+                }
+
+
             }
 
 
-        }
+        },
+
     }
 </script>
 
@@ -445,6 +593,19 @@
     html, body {
         padding: 0;
         margin: 0;
+        background-color: #ccc;
+    }
+
+    .clearfix {
+        &:before,
+        &:after {
+            content: " "; // 1
+            display: table; // 2
+        }
+
+        &:after {
+            clear: both;
+        }
     }
 
     .app {
@@ -454,33 +615,89 @@
 
         .icon-list {
             float: left;
-            width: 245px;
+            width: 156px;
+        }
+
+        .edit-wrap {
+            position: relative;
+            float: left;
+
+            & > .head {
+                height: 86px;
+                background-color: #a9aa80;
+            }
         }
 
         .img-wrap {
             position: relative;
-            float: left;
             width: 1024px;
-            height: 768px;
+            height: 682px;
             background-color: #218a8a;
+
+            .line:hover {
+                z-index: 99999 !important;
+            }
 
             .move {
                 cursor: crosshair;
             }
 
+            .tooltip {
+                position: absolute;
+                top: -45px;
+                left: 0px;
+                display: none;
+                height: 35px;
+                background-color: #ccc;
+                border-radius: 5px;
+                white-space: nowrap;
+
+                a {
+                    margin-right: 5px;
+                }
+
+                &:before {
+                    position: absolute;
+                    content: ' ';
+                    display: block;
+                    top: 35px;
+                    left: 8px;
+                    width: 0;
+                    height: 0;
+                    border-width: 10px 5px;
+                    border-style: solid;
+                    border-color: #ccc transparent transparent transparent;
+                }
+            }
+
             .del {
                 position: absolute;
-                right: -20px;
+                top: -20px;
+                left: 0px;
                 display: none;
+                cursor: pointer;
+            }
+
+            .rotate {
+                position: absolute;
+                top: -20px;
+
+                left: 20px;
+                display: none;
+                cursor: pointer;
             }
 
             .draggable.active {
                 border: 1px solid red;
                 /*&.active{*/
-                    /*border: none;*/
+                /*border: none;*/
                 /*}*/
-                .del {
+                .del, .rotate {
                     display: inline-block;
+                }
+
+                .tooltip {
+                    display: block;
                 }
 
             }
@@ -521,6 +738,25 @@
                     padding: 0 4px;
                     color: #fff;
                 }
+
+                &.text {
+                    span {
+                        display: inline-block;
+                        margin-right: 10px;
+                    }
+
+                    .name {
+                        color: #fff;
+                    }
+
+                    .val {
+                        color: yellow;
+                    }
+
+                    .unit {
+                        color: red;
+                    }
+                }
             }
 
             .table-wrap {
@@ -537,6 +773,10 @@
 
                 .red {
                     color: red;
+                }
+
+                .yellow {
+                    color: yellow;
                 }
 
                 .tip-text {
@@ -563,7 +803,8 @@
                     .del {
                         display: inline-block;
                         width: 25px;
-                        margin-left: -25px;
+                        right: auto;
+                        left: -20px;
                     }
                 }
 
@@ -580,7 +821,29 @@
 
         .attr {
             float: left;
-            width: 245px;
+            width: 156px;
+            background-color: #f0f0f0;
+            padding-top: 5px;
+            padding-right: 5px;
+            border: 1px solid #494949;
+
+            p {
+                padding: 0 8px;
+
+                label {
+                    display: inline-block;
+                    min-width: 40px;
+                    text-align: right;
+                }
+            }
+
+            .head {
+                margin: 2px;
+                padding: 0 10px;
+                margin-bottom: 5px;
+                font-size: 14px;
+                box-shadow: 1px 1px 1px #7a7a7a;
+            }
         }
 
         .newImg {
@@ -618,6 +881,41 @@
             li {
                 cursor: pointer;
             }
+        }
+
+        .opp-del {
+            display: inline-block;
+            width: 33px;
+            height: 33px;
+            background-image: url('./assets/icon/opp-del.png');
+        }
+
+        .opp-r-90 {
+            display: inline-block;
+            width: 33px;
+            height: 33px;
+            background-image: url('./assets/icon/opp-r-90.png');
+        }
+
+        .opp-r-270 {
+            display: inline-block;
+            width: 33px;
+            height: 33px;
+            background-image: url('./assets/icon/opp-r-270.png');
+        }
+
+        .opp-horizontal {
+            display: inline-block;
+            width: 33px;
+            height: 33px;
+            background-image: url('./assets/icon/opp-horizontal.png');
+        }
+
+        .opp-vertical {
+            display: inline-block;
+            width: 33px;
+            height: 33px;
+            background-image: url('./assets/icon/opp-vertical.png');
         }
     }
 </style>
