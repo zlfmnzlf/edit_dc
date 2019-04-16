@@ -9,15 +9,16 @@
             <div class="edit-wrap">
                 <div class="head clearfix">
                     <span v-if="isEdit">
-                       <button class="opp-btn" @click="saveData"><i class="save"></i>保存</button>
-                       <button class="opp-btn" @click="historyBack"><i class="save"></i>撤消</button>
-                       <button class="opp-btn" @click="historyReset"><i class="save"></i>重做</button>
-                    </span>
-                    <span class="r">
+                        <button class="opp-btn" @click="saveData"><i class="save"></i>保存</button>
+                        <button class="opp-btn" @click="historyBack"><i class="undo"></i>撤消</button>
+                        <button class="opp-btn" @click="historyReset"><i class="redo"></i>重做</button>
                         <button class="opp-btn"
                                 @click="isFullscreen=!isFullscreen;isFullscreen?fullscreen():exitFullscreen()">
                             <i class="" :class="!isFullscreen?'full':'full-a'"></i>全屏
                         </button>
+                    </span>
+                    <span class="r">
+
                     </span>
                 </div>
                 <section class="img-wrap" @click.self="onDeactivated"
@@ -383,6 +384,28 @@
                 </p>
             </div>
         </modal>
+        <modal name="device-model" class="model">
+            <h1>添加信息点</h1>
+            <div class="body">
+                <div>
+                    <p>
+                        <label>信息点</label>
+                        <select v-model="modelDeviceInfoData">
+                            <option value="">选择信息点</option>
+                            <option v-for="(item,key) in rData.deviceInfo[modelDeviceType]" :key="key" :value="item">
+                                {{item.cn_name}}
+                            </option>
+                        </select>
+                    </p>
+                </div>
+
+                <p>
+                    <label></label>
+                    <button @click="addDeviceInfo">确定</button>
+                    <button @click="$modal.hide('device-model')">取消</button>
+                </p>
+            </div>
+        </modal>
     </main>
 </template>
 
@@ -557,7 +580,11 @@
                 rData: {
                     infoTypeData: [],
                     deviceList: [],
-                    infoList: []
+                    infoList: [],
+                    deviceInfo: {
+                        pcs: [],
+                        bms: []
+                    }
                 },
                 rForm: {
                     deviceId: '',
@@ -566,6 +593,8 @@
                 isShowRightMenu: false,
                 isFullscreen: false,
                 modelInfoData: '',
+                modelDeviceType: '',
+                modelDeviceInfoData: '',
                 modelTitle: '',
                 modelData: {},
                 valData: {},
@@ -842,23 +871,33 @@
 
             },
             onAddBMS: function () {
-                this.bmsJson.push({
-                    name: '名称BMS',
-                    testVal: '0.0',
-                    setVal: '0.0',
-                    desc: '备注'
-                })
+                if (this.rData.deviceInfo.bms.length == 0) {
+                    const params = {
+                        stationUuid: this.id,
+                        // deviceType: this.rForm.deviceId,
+                    }
+                    this.$api.get('template/getstationinfolist', {params}).then(resp => {
+                        this.rData.deviceInfo.bms = resp.data.data
+                    })
+                }
+                this.modelDeviceType = 'bms'
+                this.$modal.show('device-model')
             },
             onDelBMS: function (index) {
                 this.bmsJson.splice(index, 1)
             },
             onAddPCS: function () {
-                this.pcsJson.push({
-                    name: '名称PCS',
-                    testVal: '0.0',
-                    setVal: '0.0',
-                    desc: '备注'
-                })
+                if (this.rData.deviceInfo.pcs.length == 0) {
+                    const params = {
+                        stationUuid: this.id,
+                        // deviceType: this.rForm.deviceId,
+                    }
+                    this.$api.get('template/getstationinfolist', {params}).then(resp => {
+                        this.rData.deviceInfo.pcs = resp.data.data
+                    })
+                }
+                this.modelDeviceType = 'pcs'
+                this.$modal.show('device-model')
             },
             onDelPCS: function (index) {
                 this.pcsJson.splice(index, 1)
@@ -939,7 +978,7 @@
                 }
                 this.$api.post('template/savetemplate', {
                     stationUuid: this.id,
-                    imgBase64:imgBase64,
+                    imgBase64: imgBase64,
                     stationJson: JSON.stringify(stationJson),
                     imgInfoJson: JSON.stringify(infoJson)
                 }).then(resp => {
@@ -990,6 +1029,15 @@
                     this.historyList.push(oldStr)
                     this.resetHistory(oldStr)
                 }
+            },
+            addDeviceInfo: function () {
+                if (this.modelDeviceType == 'pcs') {
+                    this.pcsJson.push(this.modelDeviceInfoData)
+                }
+                if (this.modelDeviceType == 'bms') {
+                    this.pcsJson.push(this.modelDeviceInfoData)
+                }
+                this.$modal.hide('device-model')
             }
 
 
@@ -1087,6 +1135,20 @@
                         width: 30px;
                         height: 30px;
                         background-image: url('./assets/save.png');
+                        background-size: contain;
+                    }
+
+                    .redo {
+                        width: 30px;
+                        height: 30px;
+                        background-image: url('./assets/redo.png');
+                        background-size: contain;
+                    }
+
+                    .undo {
+                        width: 30px;
+                        height: 30px;
+                        background-image: url('./assets/undo.png');
                         background-size: contain;
                     }
 
