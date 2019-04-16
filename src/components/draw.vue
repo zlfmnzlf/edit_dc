@@ -26,6 +26,7 @@
                 h: 0,
                 y: 0,
                 x: 0,
+                bg: false,
                 img: '',
                 type: ''
             }

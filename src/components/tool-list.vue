@@ -5,10 +5,8 @@
             <li v-for="(item,key) in list" :key="key">
                 <div class="item" @click.stop="$emit('sel',item.tool)"
                      :style="{backgroundImage:` url('${item.img}')`}">
-                    {{item.name}}
                 </div>
             </li>
-
         </ul>
     </section>
 </template>
@@ -19,9 +17,10 @@
     // // const iconMap = requireAll(req)
     // // console.log(iconMap)
     // requireAll(req)
-    import i1 from '../assets/icon/tmp_03.png'
-    import i2 from '../assets/icon/tmp_06.png'
-    import i3 from '../assets/icon/tmp_09.png'
+    import imgLine from '../assets/icon/line-line.png'
+    import imgCircle from '../assets/icon/line-circle.png'
+    import imgRect from '../assets/icon/line-rect.png'
+    import imgTxt from '../assets/icon/line-txt.png'
 
 
     export default {
@@ -34,9 +33,10 @@
         data: function () {
             return {
                 list: [
-                    {name: '线', tool:'line', img: i1 },
-                    {name: '圆',tool:'circle', img: i2 },
-                    {name: '矩形',tool:'rect', img: i3 },
+                    {name: '线', tool:'line', img: imgLine },
+                    {name: '圆',tool:'circle', img: imgCircle },
+                    {name: '矩形',tool:'rect', img: imgRect },
+                    {name: '文字',tool:'txt', img: imgTxt },
 
                 ]
             }
@@ -64,7 +64,6 @@
             height: 240px;
             li {
                 width: 33%;
-                min-height: 100px;
                 padding: 10px;
                 margin: 0;
                 list-style: none;

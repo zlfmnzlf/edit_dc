@@ -15,6 +15,7 @@
                     :w="10"
                     :h="10"
                     :resizable="false"
+                    :draggable="draggable"
                     :minw="10"
                     :minh="10"
                     :parent="true"
@@ -22,8 +23,10 @@
                     @dragstop="onMoveEnd"
                     @mouseenter="hover= true"
             >
+                <div class="tooltip">
+                    <a title="删除" class="opp-del" @click="infoJson.splice(key,1)"></a>
+                </div>
                 <span class="dan"></span>
-                <span class="del" @click="$emit('del')">删</span>
             </vue-draggable-resizable>
             <vue-draggable-resizable
                     :x="tmpLine.ex"
@@ -31,6 +34,7 @@
                     :w="10"
                     :h="10"
                     :resizable="false"
+                    :draggable="draggable"
                     :minw="10"
                     :minh="10"
                     :parent="true"
@@ -53,6 +57,10 @@
         components: {VueDraggableResizable},
         props: {
 
+            draggable: {
+              type: Boolean,
+              default: true
+            },
             lineData: {
                 type: Object,
             }
@@ -182,6 +190,11 @@
 
         .draggable {
             display: block;
+            .tooltip{
+                margin-top: -10px;
+                margin-left: -12px;
+                display: block;
+            }
         }
     }
 </style>

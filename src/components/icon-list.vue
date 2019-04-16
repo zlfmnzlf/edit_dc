@@ -12,57 +12,49 @@
     </section>
 </template>
 <script>
-    // const requireAll = requireContext => requireContext.keys().map(requireContext)
-    //
-    // const req = require.context('../assets/icon/', false, /\.png$/)
-    // // const iconMap = requireAll(req)
-    // // console.log(iconMap)
-    // requireAll(req)
-    import pcs from '../assets/icon/PCS.png'
-    import cell15 from '../assets/icon/cell15.png'
-    import cellAdmin from '../assets/icon/cell-admin.png'
-    import onOff3 from '../assets/icon/on-off-3.png'
-    import wattmeter from '../assets/icon/wattmeter.png'
-    import cell from '../assets/icon/cell.png'
-    import cell1admin from '../assets/icon/cell-1-admin.png'
-    import onOff1 from '../assets/icon/on-off-1.png'
-    import fastener1 from '../assets/icon/fastener1.png'
-    import fastener2 from '../assets/icon/fastener2.png'
-    import cellAdminGroup from '../assets/icon/cellAdminGroup.png'
-    import fastener from '../assets/icon/fastener.png'
-    import voltmeter from '../assets/icon/voltmeter.png'
-    import ammeter from '../assets/icon/ammeter.png'
-    import contact from '../assets/icon/contact.png'
-    import distribution from '../assets/icon/distribution.png'
-
+    import Vue from 'vue'
+    import img1 from '../assets/icon/PCS.png'
     export default {
         created: function () {
-            // const imgs =
-            // imgs.forEach(item => {
-            //     this.list.push({img: item, w: 100, h: 80, isSize: false})
-            // })
+            this.$api.get('template/getimgtoolssrc', {params: {stationUuid: this.id, imageType: 1}}).then(resp => {
+                const data = resp.data.data
+                data.forEach(item => {
+                    // {img: pcs, name: 'pcs', w: 71, h: 72, isSize: false},
+                    console.log(item)
+                    Vue.set(this.list, item.id, {})
+                    this.loadImage(item)
+                })
+            })
+        },
+        computed: {
+            id: function () {
+                return  this.$getUrlQueryString('stationUuid') // 'c021698dd56a4289a6bc1312cedc0a68'
+            },
         },
         data: function () {
             return {
-                list: [
-                    {img: pcs, name: 'pcs', w: 71, h: 72, isSize: false},
-                    {img: cell15, name: '一组电池15个', w: 17, h: 242, isSize: false},
-                    {img: cellAdmin, name: '一组电池管理单元组', w: 23, h: 254, isSize: false},
-                    {img: onOff3, name: '三刀开关', w: 35, h: 14, isSize: false},
-                    {img: wattmeter, name: '功率表', w: 20, h: 19, isSize: false},
-                    {img: cell, name: '单个电池', w: 16, h: 18, isSize: false},
-                    {img: cell1admin, name: '单个电池管理单元', w: 13, h: 17, isSize: false},
-                    {img: onOff1, name: '单刀开关', w: 36, h: 11, isSize: false},
-                    {img: fastener1, name: '单接线柱', w: 12, h: 17, isSize: false},
-                    {img: fastener2, name: '双接线柱', w: 11, h: 33, isSize: false},
-                    {img: cellAdminGroup, name: '带有管理单元的电池组', w: 41, h: 258, isSize: false},
-                    {img: fastener, name: '接线柱', w: 6, h: 28, isSize: false},
-                    {img: voltmeter, name: '电压表', w: 17, h: 16, isSize: false},
-                    {img: ammeter, name: '电流表', w: 17, h: 17, isSize: false},
-                    {img: contact, name: '触点', w: 6, h: 7, isSize: false},
-                    {img: distribution, name: '配电箱', w: 57, h: 33, isSize: false},
-                ]
+                list: {}
             }
+        },
+        methods: {
+            loadImage: function (item) {
+                const image = new Image();
+                // const baseImgUrl = document.getElementById('baseImgUrl').value
+                // image.src = 'http://api.qrmbl.com/PCS.png'
+                image.src = item.url;
+                const _ = img => {
+                    this.list[item.id] = {img: image.src, name: item.cn_name, w: img.width, h: img.height, isSize: false}
+                }
+                if (image.complete) {
+                    _(image)
+                }
+                image.onload = function () {
+                    _(image)
+                };
+                image.onerror = function (e) {
+                    console.log(e)
+                };
+            },
         }
     }
 </script>

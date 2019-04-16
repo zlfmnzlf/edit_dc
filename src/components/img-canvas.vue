@@ -11,6 +11,7 @@
             }
         },
         created: function () {
+
             this.$nextTick(function () {
                 this.ctx = this.$el.getContext('2d')
                 this.draw()

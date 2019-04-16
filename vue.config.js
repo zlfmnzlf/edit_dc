@@ -1,5 +1,9 @@
 // vue.config.js
 module.exports = {
+    transpileDependencies: [
+        'vue-echarts',
+        'resize-detector'
+    ],
     // 选项...
     chainWebpack: config => {
         config.module
