@@ -198,11 +198,12 @@
                                 </thead>
                                 <tbody>
                                 <tr v-for="(item,key) in pcsJson" :key="key">
-                                    <td><span class="del-btn" @click="onDelPCS(key)"><i class=""></i></span>{{item.name}}
+                                    <td><span class="del-btn" @click="onDelPCS(key)"><i class=""></i></span>{{item.cn_name}}
                                     </td>
-                                    <td class="red">{{item.testVal}}</td>
-                                    <td class="yellow">{{item.setVal}}</td>
-                                    <td>{{item.desc}}</td>
+                                    <td class="red"><span class="val" v-if="valData[item.info_uuid]">{{valData[item.info_uuid].value}}</span>
+                                    </td>
+                                    <td class="yellow">{{item.default_value}}</td>
+                                    <td>{{item.remark}}</td>
                                 </tr>
                                 <tr class="table-add-tr">
                                     <td></td>
@@ -229,10 +230,11 @@
                                 </thead>
                                 <tbody>
                                 <tr v-for="(item,key) in bmsJson" :key="key">
-                                    <td><span class="del-btn" @click="onDelBMS(key)"><i class=""></i></span>{{item.name}}
-                                    <td>{{item.testVal}}</td>
-                                    <td>{{item.setVal}}</td>
-                                    <td>{{item.desc}}</td>
+                                    <td><span class="del-btn" @click="onDelBMS(key)"><i class=""></i></span>{{item.cn_name}}
+                                    <td class="red"><span class="val" v-if="valData[item.info_uuid]">{{valData[item.info_uuid].value}}</span>
+                                    </td>
+                                    <td class="yellow">{{item.default_value}}</td>
+                                    <td>{{item.remark}}</td>
                                 </tr>
                                 <tr class="table-add-tr">
                                     <td></td>
@@ -498,8 +500,8 @@
                 this.$canvas.width = 1024
                 this.$canvas.height = 682
                 this.ctx = this.$canvas.getContext('2d')
-
-                this.$api.get(`template/gettemplate`, {params: {stationUuid: this.id}}).then(resp => {
+                const params = Object.assign(this.getQuery(), {stationUuid: this.id})
+                this.$api.get(`template/gettemplate`, {params}).then(resp => {
                     const data = resp.data.data
                     this.$api.get(data.infoJson, {isJson: true}).then(resp => {
                         const _data = resp.data
@@ -614,14 +616,29 @@
                 infoJson: [],
                 pcsJson: [],
                 bmsJson: [],
+                uuid: '',
             }
         },
         methods: {
+            getQuery: function () {
+                var url = location.search; //获取url中"?"符后的字串
+                var theRequest = new Object();
+                if (url.indexOf("?") != -1) {
+                    var str = url.substr(1);
+                    let strs = str.split("&");
+                    for (var i = 0; i < strs.length; i++) {
+                        theRequest[strs[i].split("=")[0]] = unescape(strs[i].split("=")[1]);
+                    }
+                }
+                return theRequest;
+            },
+
             getValList: function () {
                 const params = {
                     stationUuid: this.id,
                     infoList: this.infoUuidList.join(',')
                 }
+                Object.assign(params, this.getQuery())
                 this.$api.get('template/getstationinfovaluelist', {params}).then(resp => {
                     resp.data.data.forEach(item => {
                         Vue.set(this.valData, item.info_uuid, item)
@@ -645,7 +662,8 @@
                         }
                     })
                 })
-            },
+            }
+            ,
             getInfoList: function () {
                 const params = {
                     stationUuid: this.id,
@@ -655,7 +673,8 @@
                 this.$api.get('template/getstationinfolist', {params}).then(resp => {
                     this.rData.infoList = resp.data.data
                 })
-            },
+            }
+            ,
             exitFullscreen: function () {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
@@ -666,7 +685,8 @@
                 } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 }
-            },
+            }
+            ,
             fullscreen: function () {
                 const element = document.documentElement
                 if (element.requestFullscreen) {
@@ -678,16 +698,19 @@
                 } else if (element.webkitRequestFullscreen) {
                     element.webkitRequestFullScreen();
                 }
-            },
+            }
+            ,
             escTool: function () {
                 this.newImg = false
                 this.isShowRightMenu = false
                 // this.newTool = false
                 // this.isDarw = false
-            },
+            }
+            ,
             setTool: function (type) {
                 this.newTool = type
-            },
+            }
+            ,
             selImg: function (arg, item) {
                 this.newTool = false
                 this.isDarw = false
@@ -709,7 +732,8 @@
                     isHorizontal: false
                 }
                 // this.imgJson.push({img, w, h, isSize, x: 0, y: 0,active:true})
-            },
+            }
+            ,
             onClickAddInfo: function (type) {
                 const {sx, sy} = this.isShowRightMenu
                 let _ = {x: sx, y: sy, type: type, isSize: false}
@@ -732,7 +756,8 @@
                 this.$modal.show('info-model')
                 this.modelData = _
                 this.isShowRightMenu = false
-            },
+            }
+            ,
             addInfo: function () {
                 if (this.modelInfoData == '') {
                     alert(`请选择${this.modelData.type != 'label' ? '信息点' : '设备'}`)
@@ -752,7 +777,8 @@
                     infoTypeId: ''
                 }
                 this.$modal.hide('info-model')
-            },
+            }
+            ,
             addImg: function (ev) {
                 if (this.newImg) {
                     this.newImg.x = ev.offsetX
@@ -760,16 +786,19 @@
                     this.imgJson.push(this.newImg)
                     this.newImg = false
                 }
-            },
+            }
+            ,
             onHorizontalImg: function (item, key) {
                 item.isHorizontal = !item.isHorizontal
                 Vue.set(this.imgJson, key, item)
 
-            },
+            }
+            ,
             onVerticalImg: function (item, key) {
                 item.isVertical = !item.isVertical
                 Vue.set(this.imgJson, key, item)
-            },
+            }
+            ,
             onRotateImg: function (item, key, deg) {
                 const _ = Object.assign({}, item)
                 let nDeg = _.rotate + deg
@@ -789,7 +818,8 @@
                 }
                 Vue.set(this.imgJson, key, _)
 
-            },
+            }
+            ,
             sDarw: function (ev) {
                 if (this.newTool) {
                     if (this.newTool == 'txt') {
@@ -822,7 +852,8 @@
                     this.currentLineIndex = this.tmpJson.length - 1
                 }
 
-            },
+            }
+            ,
             eDarw: function (ev) {
                 this.isDarw = false
                 if (this.newTool) {
@@ -845,7 +876,8 @@
                 }
                 this.newTool = false
 
-            },
+            }
+            ,
             onMovePage: function (ev) {
                 const {x, y} = ev
                 if (this.newImg) {
@@ -853,7 +885,8 @@
                     this.newImg = {img, w, h, x, y, imgW, imgH, rotate, isSize, active, isVertical, isHorizontal}
                 }
 
-            },
+            }
+            ,
             onMoveTool: function (ev) {
                 if (this.newTool && this.isDarw) {
                     const data = this.tmpJson[this.currentLineIndex]
@@ -862,14 +895,16 @@
                     const ey = ev.offsetY
                     Vue.set(this.tmpJson, this.currentLineIndex, {ix, iy, sx, sy, ex, ey, type, bg})
                 }
-            },
+            }
+            ,
             onRightClick: function (ev) {
                 if (!this.isEdit) return
                 this.newTool = false
                 this.isDarw = false
                 this.isShowRightMenu = {x: ev.x, y: ev.y, sx: ev.offsetX, sy: ev.offsetY}
 
-            },
+            }
+            ,
             onAddBMS: function () {
                 if (this.rData.deviceInfo.bms.length == 0) {
                     const params = {
@@ -882,10 +917,12 @@
                 }
                 this.modelDeviceType = 'bms'
                 this.$modal.show('device-model')
-            },
+            }
+            ,
             onDelBMS: function (index) {
                 this.bmsJson.splice(index, 1)
-            },
+            }
+            ,
             onAddPCS: function () {
                 if (this.rData.deviceInfo.pcs.length == 0) {
                     const params = {
@@ -898,10 +935,12 @@
                 }
                 this.modelDeviceType = 'pcs'
                 this.$modal.show('device-model')
-            },
+            }
+            ,
             onDelPCS: function (index) {
                 this.pcsJson.splice(index, 1)
-            },
+            }
+            ,
             onDragLine: function (xy, item, i) {
                 const [x, y] = xy
                 const ox = item.x
@@ -913,17 +952,21 @@
                 item.ex = item.ex - (ox - item.x)
                 item.ey = item.ey - (oy - item.y)
                 Vue.set(this.lineJson, i, item)
-            },
+            }
+            ,
             onActivated: function (type, item, key) {
                 this.currentInfoAttr = {type, item, key}
-            },
+            }
+            ,
             onDeactivated: function () {
                 this.currentInfoAttr = false
-            },
+            }
+            ,
             fixCanvasWidth: function (args, item) {
                 item.w = args[0]
                 item.h = args[1]
-            },
+            }
+            ,
             _loadImage: function (src) {
                 return new Promise((resolve, reject) => {
                     const image = new Image();
@@ -938,7 +981,8 @@
                         reject('Error: image error!', e)
                     };
                 })
-            },
+            }
+            ,
             genImg: function () {
                 this.ctx.clearRect(0, 0, 1024, 682)
                 if (this.$refs.canImg) {
@@ -964,7 +1008,8 @@
                 }
 
 
-            },
+            }
+            ,
             saveData: function () {
                 this.genImg()
                 console.log(this.$canvas);
@@ -976,23 +1021,29 @@
                     bmsJson: this.bmsJson,
                     setJson: this.setJson
                 }
-                this.$api.post('template/savetemplate', {
+                const body = {
                     stationUuid: this.id,
                     imgBase64: imgBase64,
                     stationJson: JSON.stringify(stationJson),
-                    imgInfoJson: JSON.stringify(infoJson)
-                }).then(resp => {
+                    imgInfoJson: JSON.stringify(infoJson),
+                    uuid: this.uuid
+                }
+                const _body = Object.assign(this.getQuery(), body)
+                console.log(_body)
+                this.$api.post('template/savetemplate', _body).then(resp => {
                     alert(`保存成功`)
+                    this.uuid = resp.data.data.uuid
                     console.log(resp)
                 }).catch(err => {
                     alert(`保存失败`)
                     console.log(err)
                 })
-            },
+            }
+            ,
             getHistoryStr: function () {
                 return JSON.stringify(this.saveList)
-
-            },
+            }
+            ,
             resetHistory: function (str) {
 
                 const {lineJson, imgJson, canvasJson, infoJson, pcsJson, bmsJson, setJson} = JSON.parse(str)
@@ -1007,11 +1058,13 @@
                 this.$nextTick(function () {
                     this.isReset = false
                 })
-            },
+            }
+            ,
             addHistory: function () {
                 this.historyList.push(this.getHistoryStr())
                 if (this.historyList.length > 20) this.historyList.shift()
-            },
+            }
+            ,
             historyBack: function () {
                 if (this.historyList.length != 0) {
                     const oldStr = this.historyList.pop()
@@ -1022,14 +1075,16 @@
                     }
                     this.resetHistory(oldStr)
                 }
-            },
+            }
+            ,
             historyReset: function () {
                 if (this.resetList.length != 0) {
                     const oldStr = this.resetList.pop()
                     this.historyList.push(oldStr)
                     this.resetHistory(oldStr)
                 }
-            },
+            }
+            ,
             addDeviceInfo: function () {
                 if (this.modelDeviceType == 'pcs') {
                     this.pcsJson.push(this.modelDeviceInfoData)
@@ -1045,22 +1100,27 @@
         watch: {
             rForm: {
                 deep: true,
-                handler: function () {
-                    this.modelInfoData = ''
-                    this.getInfoList()
-                }
-            },
+                handler:
+
+                    function () {
+                        this.modelInfoData = ''
+                        this.getInfoList()
+                    }
+            }
+            ,
             saveList: {
                 deep: true,
-                handler: function () {
-                    if (!this.isReset) {
-                        this.resetList = []
-                        clearTimeout(this.historyTime)
-                        this.historyTime = setTimeout(() => {
-                            this.addHistory()
-                        }, 200)
+                handler:
+
+                    function () {
+                        if (!this.isReset) {
+                            this.resetList = []
+                            clearTimeout(this.historyTime)
+                            this.historyTime = setTimeout(() => {
+                                this.addHistory()
+                            }, 200)
+                        }
                     }
-                }
             }
 
             // infoJson: function(){
